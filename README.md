@@ -4,7 +4,7 @@
 This repository contains the implementation of MWE-aware dependency parsing, where each MWE is a syntactic unit in a dependency tree. Currently, we support functional (e.g., "a number of", "even though"), verbal (e.g., "pick up"), and adjectival MWEs (e.g., "out of business").
 
 ## Codebase
-We based our implementation on [HMTL (Hierarchical Multi-Task Learning model)](https://github.com/huggingface/hmtl).
+This repository is forked from [HMTL (Hierarchical Multi-Task Learning model)](https://github.com/huggingface/hmtl).
 
 ## Dependencies
 - Python 3.6

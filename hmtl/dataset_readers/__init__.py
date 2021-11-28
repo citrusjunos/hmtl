@@ -1,6 +1,8 @@
 # coding: utf-8
 
-from hmtl.dataset_readers.ner_ontonotes import NerOntonotesReader
-from hmtl.dataset_readers.mention_ace import MentionACEReader
-from hmtl.dataset_readers.relation_ace import RelationACEReader
-from hmtl.dataset_readers.coref_ace import CorefACEReader
+from hmtl.dataset_readers.dependency_parser_ontonotes import DependencyOntonotesReader
+from hmtl.dataset_readers.vmwe_ontonotes import VerbalMweConllReader
+from hmtl.dataset_readers.fixed_mwe_ontonotes import FixedMweConllReader
+from hmtl.dataset_readers.fixed_mwe_ud import FixedMweUdConllReader
+
+from hmtl.dataset_readers.dependency_parser_pipeline import DependencyOntonotesPipelineReader

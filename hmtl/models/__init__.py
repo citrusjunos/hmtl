@@ -1,21 +1,28 @@
 # coding: utf-8
 
-from hmtl.models.coref_custom import CoreferenceCustom
 from hmtl.models.relation_extraction import RelationExtractor
 
 # Single Module
+
+from hmtl.models.fixed_mwer import Fixed_mwer
 from hmtl.models.layerNer import LayerNer
 from hmtl.models.layerRelation import LayerRelation
-from hmtl.models.layerCoref import LayerCoref
+from hmtl.models.biaffine_dependency_parser import BiaffineDependencyParserWrapper
+from hmtl.models.biaffine_dependency_parser_for_pipeline_wrapper import BiaffineDependencyParserForPipelineWrapper
+from hmtl.models.vmwer import VmweSingle
 
 # Two modules
 from hmtl.models.layerNerEmd import LayerNerEmd
 from hmtl.models.layerEmdRelation import LayerEmdRelation
-from hmtl.models.layerEmdCoref import LayerEmdCoref
+from hmtl.models.hmtl_mwe_aware_parsing_on_fixed_mwer import HMTL_mwe_aware_parsing_on_fixed_mwer
+from hmtl.models.hmtl_vmer_on_fixed_mwer import HMTL_vmer_on_fixed_mwer
+from hmtl.models.hmtl_vmer_on_parsing import HMTL_vmer_on_parsing
+from hmtl.models.hmtl_mwe_aware_parsing_on_fusion_mwer import HMTL_MWE_aware_parsing_on_Fusion_MWER
 
 # Three modules
-from hmtl.models.layerNerEmdCoref import LayerNerEmdCoref
 from hmtl.models.layerNerEmdRelation import LayerNerEmdRelation
+from hmtl.models.hmtl_tandem_vmer_parsing_fixed_mwer import HMTL_tandem_vmer_parsing_fixed_mwer
+from hmtl.models.hmtl_tandem_with_connection_from_MLPs_of_parser_to_VMWE_encoder import HMTL_tandem_with_connection_from_mlp_of_parser_to_vmwe_encoder
 
 # Four modules
 from hmtl.models.hmtl import HMTL

@@ -33,12 +33,12 @@ from allennlp.models.model import Model
 from hmtl.tasks import Task
 from hmtl.training.multi_task_trainer import MultiTaskTrainer
 
-
 logger = logging.getLogger(__name__)  # pylint: disable=invalid-name
 
+EARLY_MAX_EPOCH = 5
 
-@MultiTaskTrainer.register("sampler_multi_task_trainer")
-class SamplerMultiTaskTrainer(MultiTaskTrainer):
+@MultiTaskTrainer.register("sampler_multi_task_trainer_with_weight")
+class SamplerMultiTaskTrainerWithWeight(MultiTaskTrainer):
     def __init__(
         self,
         model: Model,
@@ -63,7 +63,7 @@ class SamplerMultiTaskTrainer(MultiTaskTrainer):
             raise ConfigurationError(f"Sampling method ({sampling_method}) must be `uniform` or `proportional`.")
 
         self._sampling_method = sampling_method
-        super(SamplerMultiTaskTrainer, self).__init__(
+        super(SamplerMultiTaskTrainerWithWeight, self).__init__(
             model=model,
             task_list=task_list,
             optimizer_params=optimizer_params,
@@ -154,8 +154,11 @@ class SamplerMultiTaskTrainer(MultiTaskTrainer):
                 # training for this specific task
                 task_info["total_n_batches_trained"] = 0
 
+                task_info["sampling_weight"] = task._sampling_weight
+
                 task_info["last_log"] = time.time()  # Time of last logging
             self._task_infos = task_infos
+            task_names = [task._name for task in self._task_list]
 
             ### Bookkeeping the validation metrics ###
             metric_infos = {
@@ -172,8 +175,10 @@ class SamplerMultiTaskTrainer(MultiTaskTrainer):
 
         ### Write log ###
         total_n_tr_batches = 0  # The total number of training batches across all the datasets.
+        effective_total_n_tr_batches = 0
         for task_name, info in self._task_infos.items():
             total_n_tr_batches += info["n_tr_batches"]
+            effective_total_n_tr_batches += info["n_tr_batches"] * info["sampling_weight"]
             logger.info("Task %s:", task_name)
             logger.info("\t%d training batches", info["n_tr_batches"])
             logger.info("\t%d validation batches", info["n_val_batches"])
@@ -189,8 +194,8 @@ class SamplerMultiTaskTrainer(MultiTaskTrainer):
         if self._sampling_method == "uniform":
             sampling_prob = [float(1 / self._n_tasks)] * self._n_tasks
         elif self._sampling_method == "proportional":
-            sampling_prob = [float(info["n_tr_batches"] / total_n_tr_batches) for info in self._task_infos.values()]
-
+            sampling_prob = [float(info["n_tr_batches"] * info["sampling_weight"] / effective_total_n_tr_batches) for info in self._task_infos.values()]
+        
         ### Enable gradient clipping ###
         # Only if self._grad_clipping is specified
         self._enable_gradient_clipping()
@@ -222,7 +227,10 @@ class SamplerMultiTaskTrainer(MultiTaskTrainer):
             ### Start training epoch ###
             epoch_tqdm = tqdm.tqdm(range(total_n_tr_batches), total=total_n_tr_batches)
             for _ in epoch_tqdm:
-                task_idx = np.argmax(np.random.multinomial(1, sampling_prob))
+                if n_epoch < EARLY_MAX_EPOCH:
+                    task_idx = task_names.index("dep_parsing")
+                else:
+                    task_idx = np.argmax(np.random.multinomial(1, sampling_prob))
                 task = self._task_list[task_idx]
                 task_info = self._task_infos[task._name]
 
@@ -332,6 +340,11 @@ class SamplerMultiTaskTrainer(MultiTaskTrainer):
             for task_idx, task in enumerate(self._task_list):
                 logger.info("Validation - Task %d/%d: %s", task_idx + 1, self._n_tasks, task._name)
 
+                if n_epoch < EARLY_MAX_EPOCH:
+                    if task._name != "dep_parsing":
+                        continue
+
+
                 val_loss = 0.0
                 n_batches_val_this_epoch_this_task = 0
                 n_val_batches = self._task_infos[task._name]["n_val_batches"]
@@ -398,6 +411,9 @@ class SamplerMultiTaskTrainer(MultiTaskTrainer):
             ### Print all training and validation metrics for this epoch ###
             logger.info("***** Epoch %d/%d Statistics *****", n_epoch, self._num_epochs - 1)
             for task in self._task_list:
+                if n_epoch < EARLY_MAX_EPOCH:
+                    if task._name != "dep_parsing":
+                        continue
                 logger.info("Statistic: %s", task._name)
                 logger.info(
                     "\tTraining - %s: %3d",
@@ -413,6 +429,9 @@ class SamplerMultiTaskTrainer(MultiTaskTrainer):
             ### Check to see if should stop ###
             stop_tr, stop_val = True, True
 
+            if n_epoch <= EARLY_MAX_EPOCH:
+                stop_val = False
+
             for task in self._task_list:
                 # task_info = self._task_infos[task._name]
                 if self._optimizers[task._name].param_groups[0]["lr"] < self._min_lr:
@@ -420,7 +439,9 @@ class SamplerMultiTaskTrainer(MultiTaskTrainer):
                     logger.info("Task %s vote to stop training.", task._name)
                     metric_infos[task._name]["min_lr_hit"] = True
                 stop_tr = stop_tr and self._metric_infos[task._name]["min_lr_hit"]
-                stop_val = stop_val and self._metric_infos[task._name]["is_out_of_patience"]
+                
+                if task._name == "vmwer" and n_epoch > EARLY_MAX_EPOCH:
+                    stop_val = stop_val and self._metric_infos[task._name]["is_out_of_patience"]
 
             if stop_tr:
                 should_stop = True
@@ -483,7 +504,7 @@ class SamplerMultiTaskTrainer(MultiTaskTrainer):
         sampling_method = params.pop("sampling_method", "proportional")
 
         params.assert_empty(cls.__name__)
-        return SamplerMultiTaskTrainer(
+        return SamplerMultiTaskTrainerWithWeight(
             model=model,
             task_list=task_list,
             optimizer_params=optimizer_params,

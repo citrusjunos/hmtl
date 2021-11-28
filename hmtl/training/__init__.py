@@ -1,3 +1,4 @@
 # coding: utf-8
 
 from hmtl.training.sampler_multi_task_trainer import SamplerMultiTaskTrainer
+from hmtl.training.sampler_multi_task_trainer_with_task_weight import SamplerMultiTaskTrainerWithWeight

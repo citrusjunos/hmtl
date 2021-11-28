@@ -26,7 +26,7 @@ class Task:
     """
 
     def __init__(
-        self, name: str, validation_metric_name: str, validation_metric_decreases: bool, evaluate_on_test: bool = False
+        self, name: str, validation_metric_name: str, validation_metric_decreases: bool, evaluate_on_test: bool = False, sampling_weight:float = 1.0
     ) -> None:
         self._name = name
 
@@ -34,6 +34,8 @@ class Task:
         self._validation_data = None
         self._test_data = None
         self._evaluate_on_test = evaluate_on_test
+
+        self._sampling_weight = sampling_weight
 
         self._val_metric = validation_metric_name
         self._val_metric_decreases = validation_metric_decreases
@@ -88,10 +90,14 @@ class Task:
         validation_metric_decreases = params.pop_bool("validation_metric_decreases", False)
         evaluate_on_test = params.pop_bool("evaluate_on_test", False)
 
+        sampling_weight = params.pop("sampling_weight", 1.0)
+
+
         params.assert_empty(cls.__name__)
         return cls(
             name=task_name,
             validation_metric_name=validation_metric_name,
             validation_metric_decreases=validation_metric_decreases,
             evaluate_on_test=evaluate_on_test,
+            sampling_weight=sampling_weight
         )
